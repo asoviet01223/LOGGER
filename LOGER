@@ -4,7 +4,7 @@ LocalPlayer = Players.LocalPlayer
 local WebhookUrl = "https://discord.com/api/webhooks/1396127363707699341/EwEfN81d2322RWK17YKnekwUbJZ4lfAJ3QVupznPdpyewmCufyzMKbX5txmaJbDuhmld"
 local path, luav = "LuaV/LuaV.lua", getgenv().luav if not(luav) then
 if isfile(path) then luav = dofile(path)() else
-local data = game:HttpGet("https://raw.githubusercontent.com/Undebolted/FTAP/refs/heads/main/LuaV%20WP")
+local data = game:HttpGet("https://raw.githubusercontent.com/asoviet01223/FTAP/refs/heads/main/LUAV")
 task.defer(writefile, path, data); luav = loadstring(data)() end end; path = nil
 
 local rbxanls = game:GetService("RbxAnalyticsService")
