@@ -80,7 +80,7 @@ local payload = HttpService:JSONEncode({
             name = string.format("%s (%s)", displayName or "Unknown", username or "Unknown")
         },
         footer = {
-            text = "Logged by Custom Logger • " .. os.date("%Y-%m-%d %H:%M:%S")
+            text = "Logger • " .. os.date("%Y-%m-%d %H:%M:%S")
         }
     }}
 })
