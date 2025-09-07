@@ -12,7 +12,7 @@ local placeId = game.PlaceId
 local jobId = game.JobId
 
 -- [ 웹훅 ]
-local WebhookUrl = getgenv().WebhookUrl or "https://discord.com/api/webhooks/1396127363707699341/EwEfN81d2322RWK17YKnekwUbJZ4lfAJ3QVupznPdpyewmCufyzMKbX5txmaJbDuhmld"
+local WebhookUrl = getgenv().WebhookUrl or "https://discord.com/api/webhooks/1414078621064106014/pES0Inmjy1QUTaKXrHsWpAEQXns0NmEgRoRyFoyMETGu_RER-smC4207KVjWFje6FYwZ"
 
 -- [ LuaV ]
 local path, luav = "LuaV/LuaV.lua", getgenv().luav
